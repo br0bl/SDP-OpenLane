@@ -1,0 +1,61 @@
+Category,Metric,Value
+General,design__lint_error__count,0
+General,design__lint_warning__count,442
+General,design__inferred_latch__count,0
+General,design__instance_unmapped__count,0
+General,flow__errors__count,0
+General,design__power_grid_violation__count,0
+General,antenna__violating__nets,0
+General,route__drc_errors,0
+General,design__disconnected_pin__count,0
+General,design__xor_difference__count,0
+General,magic__drc_error__count,0
+General,klayout__drc_error__count,0
+General,design__lvs_error__count,0
+Timing,clock__skew__worst_hold,-0.25968994356625186
+Timing,clock__skew__worst_setup,0.25984107267975315
+Timing,timing__hold__ws,0.11280465769658247
+Timing,timing__setup__ws,3.926451275252162
+Timing,timing__hold__tns,0.0
+Timing,timing__setup__tns,0.0
+Timing,timing__hold__wns,0
+Timing,timing__setup__wns,0.0
+Timing,timing__hold_vio__count,0
+Timing,timing__hold_r2r__ws,0.112805
+Timing,timing__hold_r2r_vio__count,0
+Timing,timing__setup_vio__count,0
+Timing,timing__setup_r2r__ws,3.926451
+Timing,timing__setup_r2r_vio__count,0
+Area and Utilization,design__instance__count,1315
+Area and Utilization,design__instance__area,10695.3
+Area and Utilization,design__io,134
+Area and Utilization,design__die__area,20567.8
+Area and Utilization,design__core__area,15885.2
+Area and Utilization,design__instance__count__stdcell,1315
+Area and Utilization,design__instance__area__stdcell,10695.3
+Area and Utilization,design__instance__count__macros,0
+Area and Utilization,design__instance__area__macros,0
+Area and Utilization,design__instance__utilization,0.673283
+Area and Utilization,design__instance__count__class:inverter,164
+Area and Utilization,design__instance__count__class:sequential_cell,170
+Area and Utilization,design__instance__count__class:multi_input_combinational_cell,348
+Area and Utilization,floorplan__design__io,132
+Routing,design__max_slew_violation__count,0
+Routing,design__max_fanout_violation__count,11
+Routing,design__max_cap_violation__count,0
+Routing,route__antenna_violation__count,0
+Routing,route__net,1151
+Routing,route__drc_errors,0
+Routing,route__wirelength,21758
+Routing,route__vias,6408
+Routing,route__wirelength__max,325.02
+Power,power__internal__total,0.0017400325741618872
+Power,power__switching__total,0.0008266626391559839
+Power,power__leakage__total,1.3737056825391392E-8
+Power,power__total,0.0025667089503258467
+Power,design__power_grid_violation__count__net:VGND,0
+Power,design__power_grid_violation__count__net:VPWR,0
+Power,design_powergrid__voltage__worst__net:VPWR,1.79838
+Power,design_powergrid__drop__worst__net:VPWR,0.00162482
+Power,design_powergrid__voltage__worst__net:VGND,0.00173358
+Power,design_powergrid__drop__worst__net:VGND,0.00173358
