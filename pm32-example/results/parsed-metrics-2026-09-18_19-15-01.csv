@@ -1,0 +1,29 @@
+Metric,RUN_2026-09-17_13-16-36,RUN_2026-09-17_19-08-09
+Flow errors,0,0
+Flow warnings,1,1
+Synthesis errors,0,0
+Lint errors,0,0
+Lint warnings,442,442
+Inferred latches,0,0
+Unmapped instances,0,0
+Worst setup slack,16.088219212210145,3.926451275252162
+Worst hold slack,0.11013706924871983,0.11280465769658247
+Setup violations,0,0
+Hold violations,0,0
+Instance count,1311,1315
+Instance area,10661.5,10695.3
+Die area,20567.8,20567.8
+Core area,15885.2,15885.2
+Core utilization,0.671156,0.673283
+Total routed wire length,21560,21758
+Via count,6401,6408
+Routing DRC errors,0,0
+Antenna violations,0,0
+Maximum slew violations,0,0
+Maximum fanout violations,11,11
+Maximum capacitance violations,0,0
+Total power,0.001026750891469419,0.0025667089503258467
+Worst VPWR drop,0.000633442,0.00162482
+Worst VGND rise,0.000770355,0.00173358
+KLayout DRC errors,0,0
+LVS errors,0,0
