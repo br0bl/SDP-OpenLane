@@ -23,8 +23,8 @@ if multiple_choice == "y":
     output_directory = runs_path
 else:
     csv_path = Path(
-    r"D:\School\SDP\asic-projects\pm32-example\RUN_2026-09-17_19-08-09\metrics (10ms t_clk).csv"
-    # input("Metrics Path: ").strip("\"'").replace("\\", "/")
+    # r"D:\School\SDP\asic-projects\pm32-example\RUN_2026-09-17_19-08-09\metrics (10ms t_clk).csv"
+    input("Metrics Path: ").strip("\"'").replace("\\", "/")
 )
     csv_paths = [csv_path]
     output_directory = csv_path.parent
