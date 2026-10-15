@@ -1,0 +1,7 @@
+{
+  "DESIGN_NAME": "rc4",
+  "VERILOG_FILES": ["dir::rc4.v"],
+  "CLOCK_PERIOD": 60,
+  "FP_CORE_UTIL": 30,
+  "CLOCK_PORT": "CLK_IN"
+}
