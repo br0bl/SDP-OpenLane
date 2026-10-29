@@ -1,19 +1,25 @@
-L/.venv/bin/python
+rm -f results.xml
+rm -f results.xml
+COCOTB_TEST_MODULES=rc4_cocotb COCOTB_TESTCASE=  COCOTB_TOPLEVEL=rc4 TOPLEVEL_LANG=verilog        \
+	 /usr/bin/vvp -m /home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb/libs/libcocotbvpi_icarus.so   sim_build/sim.vvp -fst  
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:242  in gpi_load_users                  Loaded entry library: '/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0'
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:233  in gpi_load_users                  Running entry func 'initialize' from loaded library '/home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb/simulator.cpython-312-x86_64-linux-gnu.so'
+     -.--ns INFO     pygpi                              ..ib/pygpi/embed.cpp:114  in initialize                      Using Python 3.12.12 interpreter at /home/br0bl/Projects/HDL/.venv/bin/python
      -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:74   in gpi_print_registered_impl       GPI: VPI support registered
-     0.00ns INFO     cocotb.initialize                  Seeding Python random module with 1793237948
+     0.00ns INFO     cocotb.initialize                  Seeding Python random module with 1793313143
      0.00ns INFO     cocotb.initialize                  Initialized cocotb v2.1.0 from /home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb
      0.00ns INFO     cocotb.initialize                  Running on Icarus Verilog version 12.0 (stable)
      0.00ns INFO     cocotb.regression                  Running tests
      0.00ns INFO     cocotb.regression                  running rc4_cocotb.test_rc4 (1/1)
-     0.00ns INFO     cocotb.rc4                         Key: ddee9b92f268aa503163e44bac66b4f2
+     0.00ns INFO     cocotb.rc4                         Key: ec95bc809f7baa2822a04ba58e1053ba
      0.00ns INFO     cocotb.rc4                         Plaintext: 48656c6c6f2c2052433421
-FST info: dumpfile sim_build/rc4.fst opened for output.
   1150.00ns INFO     cocotb.rc4                         Test passed: all 11 ciphertext bytes match
   1150.00ns INFO     cocotb.regression                  rc4_cocotb.test_rc4 passed
   1150.00ns INFO     cocotb.regression                  **************************************************************************************
                                                         ** TEST                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
                                                         **************************************************************************************
-                                                        ** rc4_cocotb.test_rc4            PASS        1150.00           0.03      44684.07  **
+                                                        ** rc4_cocotb.test_rc4            PASS        1150.00           0.03      33515.02  **
                                                         **************************************************************************************
-                                                        ** TESTS=1 PASS=1 FAIL=0 SKIP=0               1150.00           0.03      43488.28  **
+                                                        ** TESTS=1 PASS=1 FAIL=0 SKIP=0               1150.00           0.03      32928.58  **
                                                         **************************************************************************************
+FST info: dumpfile sim_build/rc4.fst opened for output.
