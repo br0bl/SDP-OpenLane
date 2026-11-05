@@ -1,0 +1,125 @@
+import secrets
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import FallingEdge, RisingEdge, Timer
+from cryptography.hazmat.decrepit.ciphers.algorithms import ARC4
+from cryptography.hazmat.primitives.ciphers import Cipher
+
+
+def generate_vectors(message):
+    # Generate plaintext
+    plaintext = message.encode("utf-8")
+    assert 1 <= len(plaintext) <= 255, "Plaintext must be 1 to 255 UTF-8 bytes"
+
+    # Generate a random 16-byte key and reference ciphertext in memory.
+    key = secrets.token_bytes(16)
+    encryptor = Cipher(ARC4(key), mode=None).encryptor()
+    expected = encryptor.update(plaintext) + encryptor.finalize()
+
+    return key, plaintext, expected
+
+
+async def reset_dut(dut):
+    await FallingEdge(dut.CLK_IN)    
+    dut.RESET_N_IN.value = 0
+    dut.KEY_SIZE_IN.value = 0
+    dut.KEY_BYTE_IN.value = 0
+    dut.PLAIN_BYTE_IN.value = 0
+    dut.START_IN.value = 0
+    dut.STOP_IN.value = 0
+    dut.HOLD_IN.value = 0
+
+    await RisingEdge(dut.CLK_IN)
+    await FallingEdge(dut.CLK_IN)
+    dut.RESET_N_IN.value = 1
+
+
+async def run_encryption(dut, key, plaintext):
+    key_size = len(key)
+    plaintext_size = len(plaintext)
+    dut.KEY_SIZE_IN.value = key_size
+
+    dut.START_IN.value = 1
+    await FallingEdge(dut.CLK_IN)
+    dut.START_IN.value = 0
+
+    key_counter = 0
+    plain_counter = 0
+    sending_key = False
+    sending = False
+    drive_valid = False
+    dut_valid = False
+    captured = []
+
+    for _ in range(10000):
+        await RisingEdge(dut.CLK_IN)
+        await Timer(1, unit="ns")
+
+        request_key = int(dut.START_KEY_CPY_OUT.value)
+        request_plaintext = int(dut.READ_PLAINTEXT_OUT.value)
+
+        if dut_valid:
+            captured.append(int(dut.ENC_BYTE_OUT.value))
+
+        if len(captured) == plaintext_size:
+            break
+
+        if request_key:
+            sending_key = True
+            key_copy_started = False
+            key_counter = 0
+        elif sending_key:
+            if not key_copy_started:
+                key_copy_started = True
+            else:
+                key_counter += 1
+                sending_key = key_counter < key_size
+
+        if sending_key:
+            dut.KEY_BYTE_IN.value = key[key_counter]
+
+        dut_valid = bool(request_plaintext)
+        if request_plaintext and plain_counter < plaintext_size:
+            dut.PLAIN_BYTE_IN.value = plaintext[plain_counter]
+            plain_counter += 1
+    else:
+        assert False, f"Timeout: received {len(captured)}/{plaintext_size} bytes"
+
+    return bytes(captured)
+
+
+def check_ciphertext(captured, expected):
+    assert len(captured) == len(expected), "Ciphertext length mismatch"
+    for index, actual in enumerate(captured):
+        assert actual == expected[index], (
+            f"Byte {index}: expected 0x{expected[index]:02X}, "
+            f"received 0x{actual:02X}"
+        )
+
+
+
+@cocotb.test()
+async def test_rc4_v3(dut):
+    key, plaintext, expected = generate_vectors("Hello, RC4!")
+    dut._log.info("Key: %s", key.hex())
+    dut._log.info("Plaintext: %s", plaintext.hex())
+
+    cocotb.start_soon(Clock(dut.CLK_IN, 4, unit="ns").start(start_high=False))
+
+    await reset_dut(dut)
+    captured = await run_encryption(dut, key, plaintext)
+    check_ciphertext(captured, expected)
+
+    dut._log.info("First test passed: all %d ciphertext bytes match", len(plaintext))
+
+    await reset_dut(dut)
+
+    key, plaintext, expected = generate_vectors("Hello from the Reconfigurable Space Computing Lab!")
+    dut._log.info("Key: %s", key.hex())
+    dut._log.info("Plaintext: %s", plaintext.hex())
+
+    captured = await run_encryption(dut, key, plaintext)
+    check_ciphertext(captured, expected)
+
+    dut._log.info("Second test passed: all %d ciphertext bytes match", len(plaintext))
+    

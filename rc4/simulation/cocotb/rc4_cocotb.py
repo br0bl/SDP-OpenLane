@@ -7,11 +7,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 
 
 def generate_vectors(message):
-    # Generate plaintext
     plaintext = message.encode("utf-8")
     assert 1 <= len(plaintext) <= 255, "Plaintext must be 1 to 255 UTF-8 bytes"
 
-    # Generate a random 16-byte key and reference ciphertext in memory.
     key = secrets.token_bytes(16)
     encryptor = Cipher(ARC4(key), mode=None).encryptor()
     expected = encryptor.update(plaintext) + encryptor.finalize()
@@ -20,7 +18,7 @@ def generate_vectors(message):
 
 
 async def reset_dut(dut):
-    dut.CLK_IN.value = 0
+    await FallingEdge(dut.CLK_IN)
     dut.RESET_N_IN.value = 0
     dut.KEY_SIZE_IN.value = 0
     dut.KEY_BYTE_IN.value = 0
@@ -53,6 +51,7 @@ async def run_encryption(dut, key, plaintext):
 
     for _ in range(10000):
         await RisingEdge(dut.CLK_IN)
+        await Timer(1, unit="ns")
 
         request_key = int(dut.START_KEY_CPY_OUT.value)
         request_plaintext = int(dut.READ_PLAINTEXT_OUT.value)
@@ -97,10 +96,8 @@ def check_ciphertext(captured, expected):
         )
 
 
-
 @cocotb.test()
 async def test_rc4(dut):
-    # Change this message to choose the plaintext for the test.
     key, plaintext, expected = generate_vectors("Hello, RC4!")
     dut._log.info("Key: %s", key.hex())
     dut._log.info("Plaintext: %s", plaintext.hex())
@@ -111,4 +108,16 @@ async def test_rc4(dut):
     captured = await run_encryption(dut, key, plaintext)
     check_ciphertext(captured, expected)
 
-    dut._log.info("Test passed: all %d ciphertext bytes match", len(plaintext))
+    dut._log.info("First test passed: all %d ciphertext bytes match", len(plaintext))
+
+    await reset_dut(dut)
+
+    key, plaintext, expected = generate_vectors("Hello from the Reconfigurable Space Computing Lab!")
+    dut._log.info("Key: %s", key.hex())
+    dut._log.info("Plaintext: %s", plaintext.hex())
+
+    captured = await run_encryption(dut, key, plaintext)
+    check_ciphertext(captured, expected)
+
+    dut._log.info("Second test passed: all %d ciphertext bytes match", len(plaintext))
+    

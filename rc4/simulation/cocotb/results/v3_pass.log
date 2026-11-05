@@ -1,0 +1,26 @@
+COCOTB_TEST_MODULES=rc4_v3_cocotb COCOTB_TESTCASE=  COCOTB_TOPLEVEL=rc4_v3 TOPLEVEL_LANG=verilog        \
+	 /usr/bin/vvp -m /home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb/libs/libcocotbvpi_icarus.so   sim_build/sim.vvp -fst  
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:242  in gpi_load_users                  Loaded entry library: '/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0'
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:233  in gpi_load_users                  Running entry func 'initialize' from loaded library '/home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb/simulator.cpython-312-x86_64-linux-gnu.so'
+     -.--ns INFO     pygpi                              ..ib/pygpi/embed.cpp:114  in initialize                      Using Python 3.12.12 interpreter at /home/br0bl/Projects/HDL/.venv/bin/python
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:74   in gpi_print_registered_impl       GPI: VPI support registered
+     0.00ns INFO     cocotb.initialize                  Seeding Python random module with 1793854726
+     0.00ns INFO     cocotb.initialize                  Initialized cocotb v2.1.0 from /home/br0bl/Projects/HDL/.venv/lib/python3.12/site-packages/cocotb
+     0.00ns INFO     cocotb.initialize                  Running on Icarus Verilog version 12.0 (stable)
+     0.00ns INFO     cocotb.regression                  Running tests
+     0.00ns INFO     cocotb.regression                  running rc4_v3_cocotb.test_rc4_v3 (1/1)
+     0.00ns INFO     cocotb.rc4_v3                      Key: 5cf7598241317d88d4731328d10619b0
+     0.00ns INFO     cocotb.rc4_v3                      Plaintext: 48656c6c6f2c2052433421
+FST info: dumpfile sim_build/rc4_v3.fst opened for output.
+  7595.00ns INFO     cocotb.rc4_v3                      First test passed: all 11 ciphertext bytes match
+  7600.00ns INFO     cocotb.rc4_v3                      Key: 5f025a652aee5aff22ef9e32d4953cfe
+  7600.00ns INFO     cocotb.rc4_v3                      Plaintext: 48656c6c6f2066726f6d20746865205265636f6e666967757261626c6520537061636520436f6d707574696e67204c616221
+ 16439.00ns INFO     cocotb.rc4_v3                      Second test passed: all 50 ciphertext bytes match
+ 16439.00ns INFO     cocotb.regression                  rc4_v3_cocotb.test_rc4_v3 passed
+ 16439.00ns INFO     cocotb.regression                  **************************************************************************************
+                                                        ** TEST                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
+                                                        **************************************************************************************
+                                                        ** rc4_v3_cocotb.test_rc4_v3      PASS       16439.00           0.33      50578.46  **
+                                                        **************************************************************************************
+                                                        ** TESTS=1 PASS=1 FAIL=0 SKIP=0              16439.00           0.33      50473.49  **
+                                                        **************************************************************************************
