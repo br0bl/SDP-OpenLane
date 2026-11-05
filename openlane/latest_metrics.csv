@@ -1,0 +1,29 @@
+Metric,Value
+Flow errors,0
+Flow warnings,1
+Synthesis errors,0
+Lint errors,0
+Lint warnings,443
+Inferred latches,0
+Unmapped instances,0
+Worst setup slack,13.770894148114191
+Worst hold slack,0.11244316906954092
+Setup violations,0
+Hold violations,0
+Instance count,14761
+Instance area,144730
+Die area,234716
+Core area,218865
+Core utilization,0.661276
+Total routed wire length,358180
+Via count,80272
+Routing DRC errors,0
+Antenna violations,9
+Maximum slew violations,12
+Maximum fanout violations,13
+Maximum capacitance violations,11
+Total power,0.007924048230051994
+Worst VPWR drop,0.000719559
+Worst VGND rise,0.000724643
+KLayout DRC errors,0
+LVS errors,0
