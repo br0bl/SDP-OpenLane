@@ -11,17 +11,17 @@ Target Devices: SKY130A
 Tool Versions: xvlog Vivado 2026.1 
   
 Revision: 3.00
-Revision 1.00 - Existing IP
-Revision 2.00 - ASIC Optimization 
-Revision 3.00 - Aggressive ASIC Optimization 
+Revision 1.00 - External IP
+Revision 2.00 - Sequential Initialization and Multicycle KSA 
+Revision 3.00 - Shared S-Array Access and Multicycle PRGA
 
-Additional Comments: Changes made in revision 2.00: (Still works with original testbench)
+Additional Comments: Changes made in revision 2.00: (Testbench: rc4_cocotb)
     1. Removed s-array from reset block and added its own initilization state
     2. Removed key from reset block as it always gets overwritten by key_cpy
     3. Split each KSA iteration into read, calculate, and swap cycles to reduce simultaneous array access
     4. Changed key_cpy to start KSA with i, j, and key index at zero for its new iterative calculations
 
-    Change made in revision 3.00: (New testbench, rc4_cocotb_v3)
+    Change made in revision 3.00: (New testbench: rc4_cocotb_v2)
     1. Gave every S-array one read and write path
     2. Split PRGA iteration into eight clocks per byte to reduce simultaneous array access
 

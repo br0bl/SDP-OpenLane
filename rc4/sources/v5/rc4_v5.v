@@ -11,7 +11,7 @@ Target Devices: SKY130A
 Tool Versions: xvlog Vivado 2026.1 
   
 Revision: 5.00
-Revision 1.00 - Existing IP
+Revision 1.00 - External IP
 Revision 2.00 - Sequential Initialization and Multicycle KSA 
 Revision 3.00 - Shared S-Array Access and Multicycle PRGA
 Revision 4.00 - Registered S-Array Read Address

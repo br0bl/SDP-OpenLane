@@ -11,10 +11,10 @@ Target Devices: SKY130A
 Tool Versions: xvlog Vivado 2026.1 
   
 Revision: 2.00
-Revision 1.00 - Existing IP
-Revision 2.00 - ASIC Optimization
+Revision 1.00 - External IP
+Revision 2.00 - Sequential Initialization and Multicycle KSA 
 
-Additional Comments: Changes made in revision 2.00:
+Additional Comments: Changes made in revision 2.00: (Testbench: rc4_cocotb)
     1. Removed s-array from reset block and added its own initilization state
     2. Removed key from reset block as it always gets overwritten by key_cpy
     3. Split each KSA iteration into read, calculate, and swap cycles to reduce simultaneous array access
