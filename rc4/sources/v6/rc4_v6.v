@@ -1,0 +1,378 @@
+`timescale 1ns / 1ps
+/*
+Company: RSCL
+Engineer: Ben Robles
+ 
+Create Date: 11/04/2026 04:31:15 PM
+Design Name: RC4 v5
+Module Name: rc4_v5
+Project Name: SDP-OpenLane
+Target Devices: SKY130A, GF180MCUD
+Tool Versions: xvlog Vivado 2026.1 
+  
+Revision: 6.00
+Revision 1.00 - External IP
+Revision 2.00 - Sequential Initialization and Multicycle KSA 
+Revision 3.00 - Shared S-Array Access and Multicycle PRGA
+Revision 4.00 - Registered S-Array Read Address
+Revision 5.00 - S-Array Partitioning
+Revision 6.00 - Per-Block S-Array Write Path
+
+Additional Comments: Changes made in revision 2.00: (Testbench: rc4_cocotb)
+    1. Removed s-array from reset block and added its own initilization state
+    2. Removed key from reset block as it always gets overwritten by key_cpy
+    3. Split each KSA iteration into read, calculate, and swap cycles to reduce simultaneous array access
+    4. Changed key_cpy to start KSA with i, j, and key index at zero for its new iterative calculations
+
+    Change made in revision 3.00: (New testbench: rc4_cocotb_v2)
+    1. Gave every S-array one read and write path
+    2. Split PRGA iteration into eight clocks per byte to reduce simultaneous array access
+
+    Changes made in revision 4.00: (Testbench: rc4_cocotb_v2)
+    1. Registered the S-array read address to separate address selection from array decoding
+    2. Split each S-array read into address and capture states to reduce combinational path complexity
+    3. Increased KSA to eight clocks per iteration and PRGA to eleven clocks per byte
+
+    Changes made in revision 5.00: (Testbench: rc4_cocotb_v2)
+    1. Replaced the single 256-entry S-array with eight separate 32-entry arrays
+    2. Divided each S-array address into a three-bit array selector and a five-bit local address
+    3. Added S-array wrapper with localized read, write, and address-decoding logic
+
+    Changes made in revision 6.00: (Testbench: rc4_cocotb_v2)
+    1. Replaced the shared write address and data with 64-bit buses carrying eight copies, one per block
+    2. Rebuilt the S-array block instances with a generate loop
+   
+MIT License
+
+Copyright (c) 2021 Matthias Konrath
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+module rc4_v6(
+                input wire CLK_IN,
+                input wire RESET_N_IN,
+                input wire [7:0] KEY_SIZE_IN,
+                input wire [7:0] KEY_BYTE_IN,
+                input wire [7:0] PLAIN_BYTE_IN,
+                input wire START_IN,
+                input wire STOP_IN,
+                input wire HOLD_IN,
+                output reg START_KEY_CPY_OUT,
+                output reg BUSY_OUT,
+                output reg READ_PLAINTEXT_OUT,
+                output reg [7:0] ENC_BYTE_OUT
+          );
+        
+    localparam [4:0]
+        IDLE           = 5'd0,
+        INIT_S         = 5'd1,
+        KEY_CPY        = 5'd2,
+
+        KSA_ADDR_I     = 5'd3,
+        KSA_CAPTURE_I  = 5'd4,
+        KSA_CALC_J     = 5'd5,
+        KSA_ADDR_J     = 5'd6,
+        KSA_CAPTURE_J  = 5'd7,
+        KSA_WRITE_I    = 5'd8,
+        KSA_WRITE_J    = 5'd9,
+        KSA_ADVANCE    = 5'd10,
+
+        PRGA            = 5'd11,
+        PRGA_ADDR_I     = 5'd12,
+        PRGA_CAPTURE_I  = 5'd13,
+        PRGA_CALC_J     = 5'd14,
+        PRGA_ADDR_J     = 5'd15,
+        PRGA_CAPTURE_J  = 5'd16,
+        PRGA_WRITE_I    = 5'd17,
+        PRGA_WRITE_J    = 5'd18,
+        PRGA_ADDR_T     = 5'd19,
+        PRGA_CAPTURE_T  = 5'd20,
+        PRGA_OUTPUT     = 5'd21;
+        
+    reg [4:0] fsm;
+    reg [7:0] init_index;
+    reg [7:0] key [0:31];
+    reg [7:0] key_length;
+    reg [7:0] key_cpy_counter;
+    reg [7:0] key_index;
+
+    reg [7:0] ksa_counter;
+    reg [7:0] ksa_j;
+    reg [7:0] prga_counter;
+    reg [7:0] prga_j;
+    reg [7:0] array_selector;
+    reg [7:0] s_i;
+    reg [7:0] s_j;
+    reg [7:0] s_t;
+
+    reg [7:0] s_read_addr;
+    reg s_write_en;
+
+    wire s_write_en_gated;
+    wire [63:0] s_write_addr_bus;
+    wire [63:0] s_write_data_bus;
+    wire [7:0] s_read_data;
+
+    assign s_write_en_gated = RESET_N_IN && !STOP_IN && s_write_en; 
+
+    sarray dut_sarray (
+        .CLK_IN (CLK_IN),
+        .read_addr (s_read_addr),
+        .read_data (s_read_data),
+        .write_en (s_write_en_gated),
+        .write_addr_bus (s_write_addr_bus),
+        .write_data_bus (s_write_data_bus)
+    );
+
+    always @* begin
+        case (fsm)
+            INIT_S, KSA_WRITE_I, KSA_WRITE_J, PRGA_WRITE_I, PRGA_WRITE_J:
+                s_write_en = 1'b1;
+            default:
+                s_write_en = 1'b0;
+        endcase
+    end
+
+    genvar g;
+    generate
+        for (g = 0; g < 8; g = g + 1) begin : top_g_blk
+            sarray_write top_u_blk (
+                .fsm          (fsm),
+                .init_index   (init_index),
+                .ksa_counter  (ksa_counter),
+                .ksa_j        (ksa_j),
+                .prga_counter (prga_counter),
+                .prga_j       (prga_j),
+                .s_i          (s_i),
+                .s_j          (s_j),
+                .write_addr   (s_write_addr_bus[8*g +: 8]),
+                .write_data   (s_write_data_bus[8*g +: 8])
+            );
+        end
+    endgenerate
+
+    /*
+    RC4 - FSM
+    States:
+        IDLE        --> Nothing happens here (state after STOP signal or a reset)
+        ----
+        INIT_S      --> Initialzes s array
+            |
+        KEY_CPY     --> The key gets copied into the internal storage
+            |
+        KSA         --> The Key-Scheduling-Alorithm is executed (Each iteration takes eight clocks)
+            |
+        PRGA <---|  --> The Psoudo-Random-Generation-Algorithm (Each output byte takes eleven clocks)
+            |____|
+    */
+
+    // ---- ---- ---- ---- ---- ---- ---- ----
+    //                 MAIN 
+    // ---- ---- ---- ---- ---- ---- ---- ----
+    
+    always @(posedge CLK_IN) begin 
+        // ---- ---- ---- ---- ---- ---- ---- ----
+        //              RESET
+        // ---- ---- ---- ---- ---- ---- ---- ----
+        if (!RESET_N_IN || STOP_IN) begin
+            fsm <= IDLE;
+            START_KEY_CPY_OUT <= 1'b0;
+            BUSY_OUT <= 1'b0;
+            READ_PLAINTEXT_OUT <= 1'b0;
+            ENC_BYTE_OUT <= 8'd0;
+            key_length <= 8'd0;
+            key_cpy_counter <= 8'd0;
+            init_index <= 8'd0;
+            key_index <= 8'd0;
+            ksa_counter <= 8'd0;
+            ksa_j <= 8'd0;
+            prga_counter <= 8'd0;
+            prga_j <= 8'd0;
+            array_selector <= 8'd0;
+            s_i <= 8'd0;
+            s_j <= 8'd0;
+            s_t <= 8'd0;
+            s_read_addr <= 8'd0;
+        end 
+        else begin
+            START_KEY_CPY_OUT <= 1'b0;
+            READ_PLAINTEXT_OUT <= 1'b0;
+
+            case(fsm)
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            //                  IDLE
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            IDLE: begin
+                if (START_IN) begin
+                    fsm <= INIT_S;
+                    BUSY_OUT <= 1'b1;
+                    init_index <= 8'd0;
+                end
+            end
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            //                 INIT_S
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            INIT_S: begin
+                if(init_index == 8'hFF) begin
+                    fsm <= KEY_CPY;
+                    START_KEY_CPY_OUT <= 1'b1;
+                end
+                else init_index <= init_index + 8'd1;
+            end
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            //                KEY COPY
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            KEY_CPY: begin
+                if (START_KEY_CPY_OUT) begin
+                    key_length <= KEY_SIZE_IN;
+                    key_cpy_counter <= 8'd0;
+                end
+                else begin
+                    key[key_cpy_counter] <= KEY_BYTE_IN;
+
+                    if (key_cpy_counter == key_length - 8'd1) begin
+                        key_cpy_counter <= 8'd0;
+                        ksa_counter <= 8'd0;
+                        ksa_j <= 8'd0;
+                        key_index <= 8'd0;
+                        fsm <= KSA_ADDR_I;
+                    end
+                    else begin
+                        key_cpy_counter <= key_cpy_counter + 8'd1;
+                    end
+                end 
+            end 
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            //      Key-Scheduling-Alorithm (KSA)
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            KSA_ADDR_I: begin
+                s_read_addr <= ksa_counter;
+                fsm <= KSA_CAPTURE_I;
+            end
+
+            KSA_CAPTURE_I: begin
+                s_i <= s_read_data;
+                fsm <= KSA_CALC_J;
+            end
+
+            KSA_CALC_J: begin
+                ksa_j <= ksa_j + s_i + key[key_index];
+                fsm <= KSA_ADDR_J;
+            end
+
+            KSA_ADDR_J: begin
+                s_read_addr <= ksa_j;
+                fsm <= KSA_CAPTURE_J;
+            end
+
+            KSA_CAPTURE_J: begin
+                s_j <= s_read_data;
+                fsm <= KSA_WRITE_I;
+            end
+
+            KSA_WRITE_I: begin
+                fsm <= KSA_WRITE_J;
+            end
+
+            KSA_WRITE_J: begin
+                fsm <= KSA_ADVANCE;
+            end
+
+            KSA_ADVANCE: begin
+                if (ksa_counter == 8'hFF) begin
+                    prga_counter <= 8'd0;
+                    prga_j <= 8'd0;
+                    fsm <= PRGA;
+                end
+                else begin
+                    ksa_counter <= ksa_counter + 8'd1;
+
+                    if (key_index == key_length - 8'd1)
+                        key_index <= 8'd0;
+                    else
+                        key_index <= key_index + 8'd1;
+
+                    fsm <= KSA_ADDR_I;
+                end
+            end
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            // Psoudo-Random-Generation-Algorithm (PRGA)
+            // ---- ---- ---- ---- ---- ---- ---- ----
+            PRGA: begin
+                if (!HOLD_IN) begin
+                    prga_counter <= prga_counter + 8'd1;
+                    fsm <= PRGA_ADDR_I;
+                end
+            end
+
+            PRGA_ADDR_I: begin
+                s_read_addr <= prga_counter;
+                fsm <= PRGA_CAPTURE_I;
+            end
+
+            PRGA_CAPTURE_I: begin
+                s_i <= s_read_data;
+                fsm <= PRGA_CALC_J;
+            end
+
+            PRGA_CALC_J: begin
+                prga_j <= prga_j + s_i;
+                fsm <= PRGA_ADDR_J;
+            end
+
+            PRGA_ADDR_J: begin
+                s_read_addr <= prga_j;
+                fsm <= PRGA_CAPTURE_J;
+            end
+
+            PRGA_CAPTURE_J: begin
+                s_j <= s_read_data;
+                fsm <= PRGA_WRITE_I;
+            end
+
+            PRGA_WRITE_I: begin
+                fsm <= PRGA_WRITE_J;
+            end
+
+            PRGA_WRITE_J: begin
+                array_selector <= s_i + s_j;
+                fsm <= PRGA_ADDR_T;
+            end
+
+            PRGA_ADDR_T: begin
+                s_read_addr <= array_selector;
+                fsm <= PRGA_CAPTURE_T;
+            end
+
+            PRGA_CAPTURE_T: begin
+                s_t <= s_read_data;
+                READ_PLAINTEXT_OUT <= 1'b1;
+                fsm <= PRGA_OUTPUT;
+            end
+
+            PRGA_OUTPUT: begin
+                ENC_BYTE_OUT <= s_t ^ PLAIN_BYTE_IN;
+                fsm <= PRGA;
+            end
+            default: fsm <= IDLE;
+        endcase
+        end 
+    end
+endmodule
